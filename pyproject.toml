@@ -10,4 +10,12 @@ dependencies = [
     "pandas>=2.2.3",
     "polars>=1.25.2",
     "requests>=2.32.3",
+    "tqdm>=4.67.1",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "pre-commit>=4.2.0",
+    "pynvim>=0.5.2",
 ]
