@@ -9,12 +9,9 @@ def init_dp03_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)
 
     # Create sequence for primary keys
-    conn.sql("DROP SEQUENCE IF EXISTS dp03_sequence;")
-    conn.sql("CREATE SEQUENCE dp03_sequence START 1;")
     conn.sql(
         """
         CREATE TABLE IF NOT EXISTS "DP03Table" (
-            id INTEGER PRIMARY KEY DEFAULT nextval('dp03_sequence'),
             year INTEGER,
             geoid VARCHAR(30),
             total_house INTEGER,
@@ -33,19 +30,59 @@ def init_dp03_table(db_path: str) -> None:
     )
 
 
-def init_geo_table(db_path: str) -> None:
+def init_qcew_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)
-    conn.install_extension("spatial")
-    conn.load_extension("spatial")
-    conn.sql("DROP SEQUENCE IF EXISTS geo_sequence;")
-    conn.sql("CREATE SEQUENCE geo_sequence START 1;")
+
     conn.sql(
         """
-        CREATE TABLE IF NOT EXISTS "GeoTable" (
-            id INTEGER PRIMARY KEY DEFAULT nextval('geo_sequence'),
-            geoid TEXT,
-            name TEXT,
-            geometry GEOMETRY,
+        CREATE TABLE IF NOT EXISTS "QCEWTable" (
+            area_fips VARCHAR(5),
+            own_code CHAR(1),
+            industry_code VARCHAR(6),
+            agglvl_code CHAR(2),
+            size_code CHAR(1),
+            year CHAR(4),
+            qtr CHAR(1),
+            disclosure_code CHAR(1),
+            area_title VARCHAR(80),
+            own_title VARCHAR(80),
+            industry_title VARCHAR(80),
+            agglvl_title VARCHAR(80),
+            size_title VARCHAR(80),
+            qtrly_estabs INTEGER,
+            month1_emplvl INTEGER,
+            month2_emplvl INTEGER,
+            month3_emplvl INTEGER,
+            total_qtrly_wages BIGINT,
+            taxable_qtrly_wages BIGINT,
+            qtrly_contributions BIGINT,
+            avg_wkly_wage INTEGER,
+            lq_disclosure_code CHAR(1),
+            lq_qtrly_estabs FLOAT,
+            lq_month1_emplvl FLOAT,
+            lq_month2_emplvl FLOAT,
+            lq_month3_emplvl FLOAT,
+            lq_total_qtrly_wages FLOAT,
+            lq_taxable_qtrly_wages FLOAT,
+            lq_qtrly_contributions FLOAT,
+            lq_avg_wkly_wage FLOAT,
+            oty_disclosure_code CHAR(1),
+            oty_qtrly_estabs_chg INTEGER,
+            oty_qtrly_estabs_pct_chg FLOAT,
+            oty_month1_emplvl_chg INTEGER,
+            oty_month1_emplvl_pct_chg FLOAT,
+            oty_month2_emplvl_chg INTEGER,
+            oty_month2_emplvl_pct_chg FLOAT,
+            oty_month3_emplvl_chg INTEGER,
+            oty_month3_emplvl_pct_chg FLOAT,
+            oty_total_qtrly_wages_chg BIGINT,
+            oty_total_qtrly_wages_pct_chg FLOAT,
+            oty_taxable_qtrly_wages_chg BIGINT,
+            oty_taxable_qtrly_wages_pct_chg FLOAT,
+            oty_qtrly_contributions_chg BIGINT,
+            oty_qtrly_contributions_pct_chg FLOAT,
+            oty_avg_wkly_wage_chg INTEGER,
+            oty_avg_wkly_wage_pct_chg FLOAT
             );
         """
     )
