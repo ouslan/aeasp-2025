@@ -18,4 +18,5 @@ dev = [
     "jupyter>=1.1.1",
     "pre-commit>=4.2.0",
     "pynvim>=0.5.2",
+    "ruff>=0.11.12",
 ]

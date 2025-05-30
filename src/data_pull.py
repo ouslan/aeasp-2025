@@ -4,8 +4,10 @@ from json import JSONDecodeError
 
 import polars as pl
 import requests
+from tqdm import tqdm
+import os
 
-from ..models import get_conn, init_dp03_table
+from .models import get_conn, init_dp03_table
 from .jp_qcew.src.data.data_process import cleanData
 
 
@@ -93,7 +95,7 @@ class DataPull(cleanData):
                 continue
         return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
 
-    def pull_file(url: str, filename: str, verify: bool = True) -> None:
+    def pull_file(self, url: str, filename: str, verify: bool = True) -> None:
         """
         Pulls a file from a URL and saves it in the filename. Used by the class to pull external files.
 
@@ -126,10 +128,11 @@ class DataPull(cleanData):
                     for chunk in response.iter_content(chunk_size=chunk_size):
                         if chunk:
                             file.write(chunk)
-                            bar.update(
-                                len(chunk)
-                            )
+                            bar.update(len(chunk))
 
-    def pull_qcew(self,year:int,qrt:int,county:str) -> pl.DataFrame:
-    
-
+    def pull_qcew(self, year: int, qrt: int, county: str) -> pl.DataFrame:
+        url = f"http://data.bls.gov/cew/data/api/{year}/{qrt}/area/{county}.csv"
+        filename = f"{self.saving_dir}raw/bls_{year}_{qrt}_{county}.csv"
+        if not os.path.exists(filename):
+            self.pull_file(url=url, filename=filename)
+        return pl.read_csv(filename)
