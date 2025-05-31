@@ -130,9 +130,16 @@ class DataPull(cleanData):
                             file.write(chunk)
                             bar.update(len(chunk))
 
-    def pull_qcew(self, year: int, qrt: int, county: str) -> pl.DataFrame:
+    def pull_qcew_file(self, year: int, qrt: int, county: str) -> pl.DataFrame:
         url = f"http://data.bls.gov/cew/data/api/{year}/{qrt}/area/{county}.csv"
         filename = f"{self.saving_dir}raw/bls_{year}_{qrt}_{county}.csv"
         if not os.path.exists(filename):
             self.pull_file(url=url, filename=filename)
         return pl.read_csv(filename)
+
+    def pull_qcew(self):
+        if not os.path.exists(f"{self.saving_dir}external/counties.csv"):
+            self.pull_file(
+                url="https://www.bls.gov/cew/classifications/areas/area-titles-csv.csv",
+                filename=f"{self.saving_dir}external/counties.csv",
+            )
