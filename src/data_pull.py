@@ -7,7 +7,7 @@ import requests
 from tqdm import tqdm
 import os
 
-from .models import get_conn, init_dp03_table
+from .models import init_dp03_table, init_qcew_table
 from .jp_qcew.src.data.data_process import cleanData
 
 
@@ -130,16 +130,49 @@ class DataPull(cleanData):
                             file.write(chunk)
                             bar.update(len(chunk))
 
-    def pull_qcew_file(self, year: int, qrt: int, county: str) -> pl.DataFrame:
-        url = f"http://data.bls.gov/cew/data/api/{year}/{qrt}/area/{county}.csv"
-        filename = f"{self.saving_dir}raw/bls_{year}_{qrt}_{county}.csv"
+    def pull_qcew_file(self, year: int, qtr: int, county: str) -> pl.DataFrame:
+        url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
+        filename = f"{self.saving_dir}raw/bls_{year}_{qtr}_{county}.csv"
         if not os.path.exists(filename):
             self.pull_file(url=url, filename=filename)
+            logging.info(f"succesfully downloaded bls_{year}_{qtr}_{county}.csv")
         return pl.read_csv(filename)
 
     def pull_qcew(self):
-        if not os.path.exists(f"{self.saving_dir}external/counties.csv"):
-            self.pull_file(
-                url="https://www.bls.gov/cew/classifications/areas/area-titles-csv.csv",
-                filename=f"{self.saving_dir}external/counties.csv",
-            )
+        county_list = pl.read_csv(f"{self.saving_dir}external/county.csv")
+        county_list = county_list.filter(
+            ~(pl.col("area_fips").str.contains("US"))
+            & ~(pl.col("area_fips").str.contains("C"))
+            & ~pl.col("area_title").str.contains("Census")
+            & ~pl.col("area_title").str.contains("Statewide")
+            & ~pl.col("area_title").str.contains("Alaska")
+            & ~pl.col("area_title").str.contains("Planning Region")
+            & ~pl.col("area_title").str.contains("Unknown")
+        )
+        county_list = county_list.select(pl.col("area_fips")).to_series().to_list()
+
+        if "QCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_qcew_table(self.data_file)
+        for year in range(2014, 2025):
+            for qtr in range(1, 5):
+                for county in county_list:
+                    if (
+                        self.conn.sql(
+                            f"SELECT * FROM 'QCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr}"
+                        )
+                        .df()
+                        .empty
+                    ):
+                        df = self.pull_qcew_file(year=year, qtr=qtr, county=county)
+                        print(f"{year}-{qtr}-{county}")
+                        self.conn.sql(
+                            "INSERT INTO 'QCEWTable' BY NAME SELECT * FROM df"
+                        )
+                        logging.info(
+                            f"succesfully inserted qcew data for {year}-{qtr}-{county}"
+                        )
+                    else:
+                        logging.info(
+                            f"qcew data for {year}-{qtr}-{county} is in database"
+                        )
+        return self.conn.sql("SELECT * FROM 'QCEWTable';").pl()

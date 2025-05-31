@@ -9,6 +9,7 @@ dependencies = [
     "geopandas>=1.0.1",
     "pandas>=2.2.3",
     "polars>=1.25.2",
+    "pyarrow>=20.0.0",
     "requests>=2.32.3",
     "tqdm>=4.67.1",
 ]
