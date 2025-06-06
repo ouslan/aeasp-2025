@@ -5,6 +5,7 @@ from json import JSONDecodeError
 import polars as pl
 import requests
 from tqdm import tqdm
+import geopandas as gpd
 import os
 
 from .models import init_dp03_table, init_qcew_table
@@ -136,29 +137,39 @@ class DataPull(cleanData):
         if not os.path.exists(filename):
             self.pull_file(url=url, filename=filename)
             logging.info(f"succesfully downloaded bls_{year}_{qtr}_{county}.csv")
-        return pl.read_csv(filename)
+        df = pl.read_csv(filename, ignore_errors=True)
+        if len(df.columns) < 5:
+            print(county)
+            raise ValueError("File Did not download correctly")
+        return df
 
     def pull_qcew(self):
-        county_list = pl.read_csv(f"{self.saving_dir}external/county.csv")
-        county_list = county_list.filter(
-            ~(pl.col("area_fips").str.contains("US"))
-            & ~(pl.col("area_fips").str.contains("C"))
-            & ~pl.col("area_title").str.contains("Census")
-            & ~pl.col("area_title").str.contains("Statewide")
-            & ~pl.col("area_title").str.contains("Alaska")
-            & ~pl.col("area_title").str.contains("Planning Region")
-            & ~pl.col("area_title").str.contains("Unknown")
-        )
-        county_list = county_list.select(pl.col("area_fips")).to_series().to_list()
+        gdf = gpd.read_file("data/raw/tl_2024_us_county.zip")
+        gdf["county_id"] = gdf["STATEFP"] + gdf["COUNTYFP"]
+        remove_list_sates = ["66", "69", "60", "09", "15", "69", "02"]
+        remove_list_counties = ["46102"]
+        gdf = gdf[~gdf["STATEFP"].isin(remove_list_sates)]
+        gdf = gdf[~gdf["county_id"].isin(remove_list_counties)]
+        county_list = list(gdf["county_id"].values)
 
         if "QCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             init_qcew_table(self.data_file)
         for year in range(2014, 2025):
             for qtr in range(1, 5):
-                for county in county_list:
+                print(f"{year}-{qtr}")
+                county_missing = self.conn.sql(
+                    f"SELECT DISTINCT area_fips FROM 'QCEWTable' WHERE year={year} AND qtr={qtr};"
+                ).df()
+                county_missing["area_fips"] = county_missing["area_fips"].str.zfill(5)
+                county_missing = county_missing["area_fips"].to_list()
+                county_missing = list(set(county_list) - set(county_missing))
+                if len(county_missing) == 0:
+                    continue
+                print(len(county_missing))
+                for county in county_missing:
                     if (
                         self.conn.sql(
-                            f"SELECT * FROM 'QCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr}"
+                            f"SELECT * FROM 'QCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr} LIMIT(1);"
                         )
                         .df()
                         .empty
@@ -166,12 +177,13 @@ class DataPull(cleanData):
                         df = self.pull_qcew_file(year=year, qtr=qtr, county=county)
                         print(f"{year}-{qtr}-{county}")
                         self.conn.sql(
-                            "INSERT INTO 'QCEWTable' BY NAME SELECT * FROM df"
+                            "INSERT INTO 'QCEWTable' BY NAME SELECT * FROM df;"
                         )
                         logging.info(
                             f"succesfully inserted qcew data for {year}-{qtr}-{county}"
                         )
                     else:
+                        print(f"qcew data for {year}-{qtr}-{county} is in database")
                         logging.info(
                             f"qcew data for {year}-{qtr}-{county} is in database"
                         )
