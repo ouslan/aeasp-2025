@@ -17,6 +17,7 @@ dependencies = [
     { name = "pyarrow" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "shapely" },
     { name = "tqdm" },
 ]
 
@@ -40,6 +41,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=20.0.0" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "requests", specifier = ">=2.32.3" },
+    { name = "shapely", specifier = ">=2.0.7" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 

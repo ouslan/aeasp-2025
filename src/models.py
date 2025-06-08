@@ -30,6 +30,20 @@ def init_dp03_table(db_path: str) -> None:
     )
 
 
+def init_county_table(ddb_path: str) -> None:
+    conn = get_conn(ddb_path)
+    conn.load_extension("spatial")
+    conn.sql(
+        """
+        CREATE TABLE IF NOT EXISTS "CountyTable" (
+            name VARCHAR(255) NOT NULL,
+            geo_id VARCHAR(25) NOT NULL,
+            geom geometry
+        );
+    """
+    )
+
+
 def init_qcew_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)
 
