@@ -86,3 +86,17 @@ def init_qcew_table(db_path: str) -> None:
             );
         """
     )
+
+
+def init_wage_table(db_path: str) -> None:
+    conn = get_conn(db_path=db_path)
+
+    conn.sql(
+        """
+        CREATE TABLE IF NOT EXISTS "WageTable" (
+            state_name STRING,
+            year INTEGER,
+            min_wage STRING,
+            );
+        """
+    )

@@ -1,16 +1,17 @@
 import logging
+import os
 from datetime import datetime
 from json import JSONDecodeError
 
+import geopandas as gpd
+import pandas as pd
 import polars as pl
 import requests
-from tqdm import tqdm
-import geopandas as gpd
-import os
-
 from dotenv import load_dotenv
-from .models import init_dp03_table, init_qcew_table
+from tqdm import tqdm
+
 from .jp_qcew.src.data.data_process import cleanData
+from .models import init_dp03_table, init_qcew_table, init_wage_table
 
 load_dotenv()
 
@@ -133,6 +134,31 @@ class DataPull(cleanData):
                         if chunk:
                             file.write(chunk)
                             bar.update(len(chunk))
+
+    def pull_min_wage(self) -> pl.DataFrame:
+        url = "https://www.dol.gov/agencies/whd/state/minimum-wage/history"
+
+        if "WageTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_wage_table(self.data_file)
+        if self.conn.sql("SELECT * FROM 'WageTable';").df().empty:
+            html = requests.get(url).content
+
+            df_list = pd.read_html(html, match="2023")
+            df_2024 = df_list[-1]
+
+            df_list = pd.read_html(html, match="2014")
+            df_2019 = df_list[-1]
+
+            df = pd.merge(
+                df_2024, df_2019, how="left", on="State or other jurisdiction"
+            )
+            df = pl.from_pandas(df)
+            df = df.rename({"State or other jurisdiction": "state_name"})
+            df = df.unpivot(
+                index="state_name", variable_name="year", value_name="min_wage"
+            )
+            self.conn.sql("INSERT INTO 'WageTable' BY NAME SELECT * FROM df;")
+        return self.conn.sql("SELECT * FROM 'WageTable';").pl()
 
     def pull_qcew_file(self, year: int, qtr: int, county: str) -> pl.DataFrame:
         url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
