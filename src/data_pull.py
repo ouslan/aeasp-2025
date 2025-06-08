@@ -25,13 +25,15 @@ class DataPull(cleanData):
         log_file: str = "data_process.log",
     ):
         super().__init__(saving_dir, database_file, log_file)
+        self.conn.install_extension("spatial")
+        self.conn.load_extension("spatial")
 
     def pull_county_shapes(self):
         if "CountyTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             # Download the shape files
             if not os.path.exists(f"{self.saving_dir}external/county_shape.zip"):
                 self.pull_file(
-                    url="https://www2.census.gov/geo/tiger/TIGER2024/COUNTY/tl_2024_us_county.zip",
+                    url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
                     filename=f"{self.saving_dir}external/county_shape.zip",
                 )
                 logging.info("Downloaded zipcode shape files")
@@ -50,6 +52,30 @@ class DataPull(cleanData):
                 f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
             )
         return self.conn.sql("SELECT * FROM CountyTable;").df()
+
+    def pull_states_shapes(self):
+        if "StateTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            # Download the shape files
+            if not os.path.exists(f"{self.saving_dir}external/state_shape.zip"):
+                self.pull_file(
+                    url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
+                    filename=f"{self.saving_dir}external/state_shape.zip",
+                )
+                logging.info("Downloaded zipcode shape files")
+
+            gdf = gpd.read_file(f"{self.saving_dir}external/state_shape.zip")
+            gdf = gdf.rename(columns={"NAME": "state_name", "STATEFP": "fips"})
+
+            gdf = gdf[["fips", "state_name", "geometry"]]
+            df = gdf.drop(columns="geometry")
+
+            geometry = gdf["geometry"].apply(lambda geom: geom.wkt)
+            df["geometry"] = geometry
+            self.conn.execute("CREATE TABLE StateTable AS SELECT * FROM df")
+            logging.info(
+                f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
+            )
+        return self.conn.sql("SELECT * FROM StateTable;").df()
 
     def pull_query(self, params: list, year: int) -> pl.DataFrame:
         # prepare custom census query
