@@ -8,8 +8,11 @@ from tqdm import tqdm
 import geopandas as gpd
 import os
 
+from dotenv import load_dotenv
 from .models import init_dp03_table, init_qcew_table
 from .jp_qcew.src.data.data_process import cleanData
+
+load_dotenv()
 
 
 class DataPull(cleanData):
@@ -187,4 +190,15 @@ class DataPull(cleanData):
                         logging.info(
                             f"qcew data for {year}-{qtr}-{county} is in database"
                         )
-        return self.conn.sql("SELECT * FROM 'QCEWTable';").pl()
+                self.notify(
+                    url=str(os.environ.get("URL")),
+                    auth=str(os.environ.get("AUTH")),
+                    msg=f"Finished {year}-{qtr}",
+                )
+
+    def notify(self, url: str, auth: str, msg: str):
+        requests.post(
+            url,
+            data=msg,
+            headers={"Authorization": auth},
+        )
