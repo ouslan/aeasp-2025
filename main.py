@@ -1,9 +1,11 @@
-import polars as pl
-import arviz as az
-import numpy as np
-import bambi as bmb
-from src.data_pull import DataPull
+import os
 
+import arviz as az
+import bambi as bmb
+import numpy as np
+import polars as pl
+
+from src.data_pull import DataPull
 
 dp = DataPull()
 
@@ -26,6 +28,7 @@ def main():
     df = df.with_columns(area_fips=pl.col("area_fips").str.zfill(5))
     df = df.with_columns(fips=pl.col("area_fips").str.slice(0, 2))
     df = df.join(df_min, on=["fips", "year"], how="inner", validate="m:1")
+    df = df.filter(pl.col("year") < 2024)
     fips_list = dp.pull_states_shapes()["fips"].to_list()
     naics_code = [
         "11",
@@ -111,6 +114,11 @@ def main():
                 random_seed=787,
             )
             az.to_netcdf(results, f"data/processed/results_{fips}_{naics}.nc")
+            dp.notify(
+                url=str(os.environ.get("URL")),
+                auth=str(os.environ.get("AUTH")),
+                msg=f"Successfully completed regression for NAICS {naics} for {fips}",
+            )
 
 
 if __name__ == "__main__":
