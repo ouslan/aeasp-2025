@@ -4,8 +4,11 @@ import arviz as az
 import bambi as bmb
 import numpy as np
 import polars as pl
+from dotenv import load_dotenv
 
 from src.data_pull import DataPull
+
+load_dotenv()
 
 dp = DataPull()
 
