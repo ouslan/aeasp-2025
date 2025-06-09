@@ -28,7 +28,7 @@ def main():
     df = df.with_columns(area_fips=pl.col("area_fips").str.zfill(5))
     df = df.with_columns(fips=pl.col("area_fips").str.slice(0, 2))
     df = df.join(df_min, on=["fips", "year"], how="inner", validate="m:1")
-    df = df.filter(pl.col("year") < 2024)
+    df = df.filter(pl.col("year").cast(pl.Int32) < 2024)
     fips_list = dp.pull_states_shapes()["fips"].to_list()
     naics_code = [
         "11",
