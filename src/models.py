@@ -8,12 +8,19 @@ def get_conn(db_path: str) -> duckdb.DuckDBPyConnection:
 def init_dp03_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)
 
-    # Create sequence for primary keys
     conn.sql(
         """
         CREATE TABLE IF NOT EXISTS "DP03Table" (
             year INTEGER,
-            geoid VARCHAR(30),
+            fips VARCHAR(2),
+            geoid VARCHAR(5),
+            total_population INTEGER,
+            in_labor_force INTEGER,
+            unemployment INTEGER,
+            own_children6 INTEGER,
+            own_children17 INTEGER,
+            commute_car INTEGER,
+            commute_time FLOAT,
             total_house INTEGER,
             inc_less_10k INTEGER,
             inc_10k_15k INTEGER,
@@ -24,23 +31,11 @@ def init_dp03_table(db_path: str) -> None:
             inc_75k_100k INTEGER,
             inc_100k_150k INTEGER,
             inc_150k_200k INTEGER,
-            inc_more_200k INTEGER
+            inc_more_200k INTEGER,
+            with_social_security INTEGER,
+            food_stamp INTEGER
             );
         """
-    )
-
-
-def init_county_table(ddb_path: str) -> None:
-    conn = get_conn(ddb_path)
-    conn.load_extension("spatial")
-    conn.sql(
-        """
-        CREATE TABLE IF NOT EXISTS "CountyTable" (
-            name VARCHAR(255) NOT NULL,
-            geo_id VARCHAR(25) NOT NULL,
-            geom geometry
-        );
-    """
     )
 
 

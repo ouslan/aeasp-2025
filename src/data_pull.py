@@ -9,10 +9,9 @@ import polars as pl
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
-from shapely import wkt
 
 from .jp_qcew.src.data.data_process import cleanData
-from .models import init_dp03_table, init_qcew_table, init_wage_table, init_county_table
+from .models import init_dp03_table, init_qcew_table, init_wage_table
 
 load_dotenv()
 
@@ -82,7 +81,7 @@ class DataPull(cleanData):
         param = ",".join(params)
         base = "https://api.census.gov/data/"
         flow = "/acs/acs5/profile"
-        url = f"{base}{year}{flow}?get={param}&for=county%20subdivision:*&in=state:72&in=county:*"
+        url = f"{base}{year}{flow}?get={param}&for=county:*&in=state:*"
         df = pl.DataFrame(requests.get(url).json())
 
         # get names from DataFrame
@@ -94,12 +93,14 @@ class DataPull(cleanData):
         df = df.drop("column_0").transpose()
         return df.rename(names).with_columns(year=pl.lit(year))
 
-    def pull_dp03(self) -> pl.DataFrame:
+    def pull_dp03(self):
         if "DP03Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             init_dp03_table(self.data_file)
         for _year in range(2012, datetime.now().year):
             if (
-                self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}")
+                self.conn.sql(
+                    f"SELECT * FROM 'DP03Table' WHERE year={_year}"
+                )
                 .df()
                 .empty
             ):
@@ -107,6 +108,13 @@ class DataPull(cleanData):
                     logging.info(f"pulling {_year} data")
                     tmp = self.pull_query(
                         params=[
+                            "DP03_0001E",
+                            "DP03_0008E",
+                            "DP03_0009E",
+                            "DP03_0014E",
+                            "DP03_0016E",
+                            "DP03_0019E",
+                            "DP03_0025E",
                             "DP03_0051E",
                             "DP03_0052E",
                             "DP03_0053E",
@@ -118,11 +126,20 @@ class DataPull(cleanData):
                             "DP03_0059E",
                             "DP03_0060E",
                             "DP03_0061E",
+                            "DP03_0070E",
+                            "DP03_0074E",
                         ],
                         year=_year,
                     )
                     tmp = tmp.rename(
                         {
+                            "dp03_0001e": "total_population",
+                            "dp03_0008e": "in_labor_force",
+                            "dp03_0009e": "unemployment",
+                            "dp03_0014e": "own_children6",
+                            "dp03_0016e": "own_children17",
+                            "dp03_0019e": "commute_car",
+                            "dp03_0025e": "commute_time",
                             "dp03_0051e": "total_house",
                             "dp03_0052e": "inc_less_10k",
                             "dp03_0053e": "inc_10k_15k",
@@ -134,14 +151,13 @@ class DataPull(cleanData):
                             "dp03_0059e": "inc_100k_150k",
                             "dp03_0060e": "inc_150k_200k",
                             "dp03_0061e": "inc_more_200k",
+                            "dp03_0070e": "with_social_security",
+                            "dp03_0074e": "food_stamp",
                         }
                     )
                     tmp = tmp.with_columns(
-                        geoid=pl.col("state")
-                        + pl.col("county")
-                        + pl.col("county subdivision")
-                    ).drop(["state", "county", "county subdivision"])
-                    tmp = tmp.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
+                        geoid=pl.col("state") + pl.col("county"), fips=pl.col("state")
+                    ).drop(["state", "county"])
                     self.conn.sql("INSERT INTO 'DP03Table' BY NAME SELECT * FROM tmp")
                     logging.info(f"succesfully inserting {_year}")
                 except JSONDecodeError:

@@ -13,6 +13,7 @@ class DataReg(DataPull):
 
     def data_set(self) -> pl.DataFrame:
         df_min = self.pull_min_wage()
+        df_shape = pl.from_pandas(self.pull_states_shapes())
         var = "area_fips,year,qtr,industry_code,agglvl_code,month1_emplvl,month2_emplvl,month3_emplvl,total_qtrly_wages,avg_wkly_wage,qtrly_estabs"
         df = self.conn.sql(
             f"""
@@ -20,4 +21,6 @@ class DataReg(DataPull):
                 WHERE agglvl_code=74;
             """
         ).pl()
+        df_min = df_min.join(df_shape, on="state_name", how="inner", validate="m:1")
+
         return df
