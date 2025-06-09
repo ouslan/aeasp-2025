@@ -3,34 +3,26 @@ name = "aeasp-2025"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
-    "arviz[all]>=0.21.0",
-    "bambi>=0.15.0",
-    "bayeux-ml>=0.1.15",
-    "duckdb>=1.2.1",
-    "flowmc>=0.4.4",
-    "geopandas>=1.0.1",
-    "html5lib>=1.1",
-    "lxml>=5.4.0",
-    "matplotlib>=3.10.3",
-    "missingno>=0.5.2",
-    "pandas>=2.2.3",
-    "polars>=1.25.2",
-    "pyarrow>=20.0.0",
-    "python-dotenv>=1.1.0",
-    "requests>=2.32.3",
-    "shapely>=2.0.7",
-    "tqdm>=4.67.1",
+  "arviz[all]>=0.21.0",
+  "bambi>=0.15.0",
+  "bayeux-ml>=0.1.15",
+  "duckdb>=1.2.1",
+  "geopandas>=1.0.1",
+  "html5lib>=1.1",
+  "lxml>=5.4.0",
+  "matplotlib>=3.10.3",
+  "missingno>=0.5.2",
+  "pandas>=2.2.3",
+  "polars>=1.25.2",
+  "pyarrow>=20.0.0",
+  "python-dotenv>=1.1.0",
+  "requests>=2.32.3",
+  "shapely>=2.0.7",
+  "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
-dev = [
-    "jupyter>=1.1.1",
-    "pre-commit>=4.2.0",
-    "pynvim>=0.5.2",
-    "ruff>=0.11.12",
-]
-gpu = [
-    "jax[rocm]>=0.5.0",
-]
+dev = ["jupyter>=1.1.1", "pre-commit>=4.2.0", "pynvim>=0.5.2", "ruff>=0.11.12"]
+gpu = ["jax[rocm]>=0.5.0"]
