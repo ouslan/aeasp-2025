@@ -97,7 +97,9 @@ fastprogress==1.0.3
 filelock==3.18.0
     # via pytensor
 flowmc==0.4.4
-    # via bayeux-ml
+    # via
+    #   aeasp-2025 (pyproject.toml)
+    #   bayeux-ml
 fonttools==4.58.2
     # via matplotlib
 formulae==0.5.4
