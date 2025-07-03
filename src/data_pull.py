@@ -9,6 +9,7 @@ import polars as pl
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
+from shapely import wkt
 
 from .jp_qcew.src.data.data_process import cleanData
 from .models import init_dp03_table, init_qcew_table, init_wage_table
@@ -50,7 +51,14 @@ class DataPull(cleanData):
             logging.info(
                 f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
             )
-        return self.conn.sql("SELECT * FROM CountyTable;").df()
+
+        gdf = gpd.GeoDataFrame(self.conn.sql("SELECT * FROM CountyTable;").df())
+        gdf["geometry"] = gdf["geometry"].apply(wkt.loads)
+        gdf = gdf.set_geometry("geometry").set_crs("EPSG:4269", allow_override=True)
+        gdf = gdf.to_crs("EPSG:3395")
+        gdf["area_fips"] = gdf["geo_id"].astype(str)
+        gdf["fips"] = gdf["fips"].astype(str)
+        return gdf
 
     def pull_states_shapes(self):
         if "StateTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
