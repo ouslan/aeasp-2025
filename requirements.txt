@@ -7,47 +7,37 @@ absl-py==2.2.2
     #   optax
     #   orbax-checkpoint
     #   tensorflow-probability
-access==1.1.9
-    # via pysal
-affine==2.4.0
-    # via
-    #   rasterio
-    #   rasterstats
 arviz==0.21.0
     # via
-    #   pr-salaries (pyproject.toml)
+    #   aeasp-2025 (pyproject.toml)
     #   bambi
     #   bayeux-ml
+    #   causalpy
     #   nutpie
     #   pymc
 asciitree==0.3.3
     # via zarr
+asttokens==3.0.0
+    # via stack-data
 attrs==25.3.0
-    # via
-    #   dm-tree
-    #   fiona
-    #   rasterio
+    # via dm-tree
 bambi==0.15.0
-    # via pr-salaries (pyproject.toml)
+    # via aeasp-2025 (pyproject.toml)
 bayeux-ml==0.1.15
-    # via pr-salaries (pyproject.toml)
-beautifulsoup4==4.13.4
-    # via
-    #   libpysal
-    #   pysal
+    # via aeasp-2025 (pyproject.toml)
 blackjax==1.2.5
     # via bayeux-ml
 bokeh==3.7.3
     # via arviz
 cachetools==5.5.2
     # via pymc
+causalpy==0.4.2
+    # via aeasp-2025 (pyproject.toml)
 certifi==2025.4.26
     # via
-    #   fiona
     #   netcdf4
     #   pyogrio
     #   pyproj
-    #   rasterio
     #   requests
 cftime==1.6.4.post1
     # via netcdf4
@@ -57,22 +47,8 @@ chex==0.1.89
     # via optax
 click==8.2.0
     # via
-    #   click-plugins
-    #   cligj
     #   dask
     #   distributed
-    #   fiona
-    #   rasterio
-    #   rasterstats
-click-plugins==1.1.1
-    # via
-    #   fiona
-    #   rasterio
-cligj==0.7.2
-    # via
-    #   fiona
-    #   rasterio
-    #   rasterstats
 cloudpickle==3.1.1
     # via
     #   dask
@@ -100,9 +76,9 @@ dask==2025.5.0
     #   arviz
     #   distributed
 decorator==5.2.1
-    # via tensorflow-probability
-deprecation==2.1.0
-    # via segregation
+    # via
+    #   ipython
+    #   tensorflow-probability
 distributed==2025.5.0
     # via dask
 dm-tree==0.1.9
@@ -112,18 +88,12 @@ dm-tree==0.1.9
 dotmap==1.3.30
     # via evosax
 duckdb==1.2.2
-    # via pr-salaries (pyproject.toml)
+    # via aeasp-2025 (pyproject.toml)
 equinox==0.12.2
     # via
     #   flowmc
     #   lineax
     #   optimistix
-esda==2.7.0
-    # via
-    #   giddy
-    #   pysal
-    #   spaghetti
-    #   splot
 etils==1.12.2
     # via
     #   optax
@@ -134,14 +104,16 @@ etuples==0.3.9
     #   pytensor
 evosax==0.2.0
     # via flowmc
+exceptiongroup==1.3.0
+    # via ipython
+executing==2.2.0
+    # via stack-data
 fasteners==0.19
     # via zarr
 fastprogress==1.0.3
     # via blackjax
 filelock==3.18.0
     # via pytensor
-fiona==1.10.1
-    # via rasterstats
 flax==0.10.4
     # via evosax
 flowmc==0.3.4
@@ -159,29 +131,18 @@ fsspec==2025.3.2
 gast==0.6.0
     # via tensorflow-probability
 geopandas==1.0.1
-    # via
-    #   pr-salaries (pyproject.toml)
-    #   access
-    #   esda
-    #   libpysal
-    #   momepy
-    #   pointpats
-    #   pysal
-    #   segregation
-    #   spaghetti
-    #   splot
-    #   spopt
-    #   tobler
-giddy==2.3.6
-    # via
-    #   pysal
-    #   splot
+    # via aeasp-2025 (pyproject.toml)
 graphviz==0.20.3
-    # via bambi
+    # via
+    #   aeasp-2025 (pyproject.toml)
+    #   bambi
+    #   causalpy
 h5netcdf==1.6.1
     # via arviz
 h5py==3.13.0
     # via h5netcdf
+html5lib==1.1
+    # via aeasp-2025 (pyproject.toml)
 humanize==4.12.3
     # via orbax-checkpoint
 idna==3.10
@@ -190,10 +151,10 @@ importlib-metadata==8.7.0
     # via dask
 importlib-resources==6.5.2
     # via etils
-inequality==1.1.1
-    # via pysal
 interface-meta==1.3.0
     # via formulaic
+ipython==8.37.0
+    # via causalpy
 jax==0.5.0
     # via
     #   bayeux-ml
@@ -230,36 +191,18 @@ jaxtyping==0.3.2
     #   equinox
     #   lineax
     #   optimistix
+jedi==0.19.2
+    # via ipython
 jinja2==3.1.6
     # via
     #   bokeh
     #   distributed
 joblib==1.5.0
-    # via
-    #   scikit-learn
-    #   segregation
-    #   tobler
+    # via scikit-learn
 kiwisolver==1.4.8
     # via matplotlib
-libpysal==4.13.0
-    # via
-    #   esda
-    #   giddy
-    #   inequality
-    #   mgwr
-    #   momepy
-    #   pointpats
-    #   pysal
-    #   segregation
-    #   spaghetti
-    #   spglm
-    #   spint
-    #   splot
-    #   spopt
-    #   spreg
-    #   tobler
 linearmodels==6.1
-    # via pr-salaries (pyproject.toml)
+    # via aeasp-2025 (pyproject.toml)
 lineax==0.0.8
     # via optimistix
 llvmlite==0.44.0
@@ -273,43 +216,34 @@ logical-unification==0.4.6
     #   cons
     #   minikanren
     #   pytensor
-mapclassify==2.8.1
-    # via
-    #   giddy
-    #   pysal
-    #   segregation
-    #   splot
-    #   spopt
+lxml==6.0.0
+    # via aeasp-2025 (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
 matplotlib==3.10.3
     # via
-    #   pr-salaries (pyproject.toml)
+    #   aeasp-2025 (pyproject.toml)
     #   arviz
+    #   causalpy
     #   corner
     #   evosax
-    #   inequality
-    #   pointpats
+    #   missingno
     #   seaborn
-    #   segregation
-    #   splot
+matplotlib-inline==0.1.7
+    # via ipython
 mdurl==0.1.2
     # via markdown-it-py
-mgwr==2.2.1
-    # via pysal
 minikanren==1.0.3
     # via pytensor
+missingno==0.5.2
+    # via aeasp-2025 (pyproject.toml)
 ml-dtypes==0.5.1
     # via
     #   jax
     #   jaxlib
     #   tensorstore
-momepy==0.9.1
-    # via pysal
-mpmath==1.3.0
-    # via sympy
 msgpack==1.1.0
     # via
     #   distributed
@@ -329,42 +263,30 @@ nest-asyncio==1.6.0
     # via orbax-checkpoint
 netcdf4==1.7.2
     # via arviz
-networkx==3.4.2
-    # via
-    #   mapclassify
-    #   momepy
-    #   spopt
 numba==0.61.2
-    # via
-    #   arviz
-    #   quantecon
-    #   segregation
+    # via arviz
 numcodecs==0.13.1
     # via zarr
 numpy==2.2.5
     # via
-    #   access
     #   arviz
     #   bokeh
+    #   causalpy
     #   cftime
     #   chex
     #   contourpy
     #   dm-tree
-    #   esda
     #   evosax
     #   formulae
     #   formulaic
     #   geopandas
     #   h5py
-    #   inequality
     #   jax
     #   jaxlib
     #   jaxopt
-    #   libpysal
     #   linearmodels
-    #   mapclassify
     #   matplotlib
-    #   mgwr
+    #   missingno
     #   ml-dtypes
     #   netcdf4
     #   numba
@@ -374,42 +296,25 @@ numpy==2.2.5
     #   orbax-checkpoint
     #   pandas
     #   patsy
-    #   pointpats
     #   pyhdfe
     #   pymc
     #   pyogrio
-    #   pysal
     #   pytensor
-    #   quantecon
-    #   rasterio
-    #   rasterstats
     #   scikit-learn
     #   scipy
     #   seaborn
-    #   segregation
     #   shapely
-    #   spaghetti
-    #   spglm
-    #   spint
-    #   splot
-    #   spopt
-    #   spreg
     #   statsmodels
     #   tensorflow-probability
     #   tensorstore
-    #   tobler
     #   treescope
     #   xarray
     #   xarray-einstats
     #   zarr
 numpyro==0.18.0
-    # via
-    #   pr-salaries (pyproject.toml)
-    #   bayeux-ml
+    # via bayeux-ml
 nutpie==0.14.3
-    # via
-    #   pr-salaries (pyproject.toml)
-    #   bayeux-ml
+    # via bayeux-ml
 opt-einsum==3.4.0
     # via jax
 optax==0.2.4
@@ -429,95 +334,78 @@ packaging==25.0
     #   arviz
     #   bokeh
     #   dask
-    #   deprecation
     #   distributed
     #   geopandas
     #   h5netcdf
-    #   libpysal
     #   matplotlib
-    #   momepy
     #   pyogrio
-    #   pysal
     #   setuptools-scm
-    #   splot
     #   statsmodels
     #   xarray
     #   xarray-datatree
 pandas==2.2.3
     # via
-    #   pr-salaries (pyproject.toml)
-    #   access
+    #   aeasp-2025 (pyproject.toml)
     #   arviz
     #   bambi
     #   bokeh
-    #   esda
+    #   causalpy
     #   formulae
     #   formulaic
     #   geopandas
-    #   libpysal
     #   linearmodels
-    #   mapclassify
-    #   momepy
     #   nutpie
-    #   pointpats
     #   pymc
-    #   pysal
     #   seaborn
-    #   segregation
-    #   spaghetti
-    #   spopt
-    #   spreg
     #   statsmodels
-    #   tobler
     #   xarray
+parso==0.8.4
+    # via jedi
 partd==1.4.2
     # via dask
 patsy==1.0.1
-    # via statsmodels
+    # via
+    #   causalpy
+    #   statsmodels
+pexpect==4.9.0
+    # via ipython
 pillow==11.2.1
     # via
     #   bokeh
     #   matplotlib
-platformdirs==4.3.8
-    # via
-    #   libpysal
-    #   pysal
-pointpats==2.5.1
-    # via
-    #   pysal
-    #   spopt
 polars==1.29.0
-    # via pr-salaries (pyproject.toml)
+    # via aeasp-2025 (pyproject.toml)
+prompt-toolkit==3.0.51
+    # via ipython
 protobuf==6.31.1
     # via orbax-checkpoint
 psutil==7.0.0
     # via distributed
-pulp==3.1.1
-    # via spopt
+ptyprocess==0.7.0
+    # via pexpect
+pure-eval==0.2.3
+    # via stack-data
 pyarrow==20.0.0
     # via
-    #   pr-salaries (pyproject.toml)
+    #   aeasp-2025 (pyproject.toml)
     #   nutpie
 pygments==2.19.1
-    # via rich
+    # via
+    #   ipython
+    #   rich
 pyhdfe==0.2.0
     # via linearmodels
 pymc==5.22.0
     # via
     #   bambi
     #   bayeux-ml
+    #   causalpy
 pyogrio==0.11.0
     # via geopandas
 pyparsing==3.2.3
-    # via
-    #   matplotlib
-    #   rasterio
+    # via matplotlib
 pyproj==3.7.1
-    # via
-    #   geopandas
-    #   segregation
-pysal==25.1
-    # via pr-salaries (pyproject.toml)
+    # via geopandas
 pytensor==2.30.3
     # via pymc
 python-dateutil==2.9.0.post0
@@ -525,7 +413,7 @@ python-dateutil==2.9.0.post0
     #   matplotlib
     #   pandas
 python-dotenv==1.1.0
-    # via pr-salaries (pyproject.toml)
+    # via aeasp-2025 (pyproject.toml)
 pytz==2025.2
     # via pandas
 pyyaml==6.0.2
@@ -535,74 +423,37 @@ pyyaml==6.0.2
     #   distributed
     #   flax
     #   orbax-checkpoint
-quantecon==0.8.0
-    # via giddy
-rasterio==1.4.3
-    # via
-    #   rasterstats
-    #   tobler
-rasterstats==0.20.0
-    # via tobler
 requests==2.32.3
-    # via
-    #   access
-    #   libpysal
-    #   pysal
-    #   quantecon
+    # via aeasp-2025 (pyproject.toml)
 rich==14.0.0
     # via
     #   flax
     #   pymc
-rtree==1.4.0
-    # via spaghetti
-ruff==0.11.11
-    # via pr-salaries (pyproject.toml)
-scikit-learn==1.6.1
+scikit-learn==1.7.0
     # via
-    #   esda
-    #   libpysal
-    #   mapclassify
-    #   pysal
-    #   segregation
-    #   spopt
-    #   spreg
+    #   aeasp-2025 (pyproject.toml)
+    #   causalpy
 scipy==1.13.1
     # via
     #   arviz
-    #   esda
+    #   causalpy
     #   formulae
     #   formulaic
-    #   giddy
-    #   inequality
     #   jax
     #   jaxlib
     #   jaxopt
-    #   libpysal
     #   linearmodels
-    #   mapclassify
-    #   mgwr
-    #   pointpats
+    #   missingno
     #   pyhdfe
     #   pymc
-    #   pysal
     #   pytensor
-    #   quantecon
     #   scikit-learn
-    #   segregation
-    #   spaghetti
-    #   spglm
-    #   spint
-    #   spopt
-    #   spreg
     #   statsmodels
-    #   tobler
     #   xarray-einstats
 seaborn==0.13.2
     # via
-    #   segregation
-    #   splot
-segregation==2.5.2
-    # via pysal
+    #   causalpy
+    #   missingno
 setuptools==80.7.1
     # via
     #   arviz
@@ -612,55 +463,23 @@ setuptools-scm==8.3.1
     # via linearmodels
 shapely==2.1.0
     # via
-    #   esda
+    #   aeasp-2025 (pyproject.toml)
     #   geopandas
-    #   libpysal
-    #   momepy
-    #   pointpats
-    #   pysal
-    #   rasterstats
-    #   spaghetti
-    #   spopt
 simplejson==3.20.1
-    # via
-    #   orbax-checkpoint
-    #   rasterstats
+    # via orbax-checkpoint
 six==1.17.0
     # via
+    #   html5lib
     #   python-dateutil
     #   tensorflow-probability
 sortedcontainers==2.4.0
     # via distributed
-soupsieve==2.7
-    # via beautifulsoup4
-spaghetti==1.7.6
-    # via
-    #   pysal
-    #   spopt
-spglm==1.1.0
-    # via
-    #   mgwr
-    #   pysal
-    #   spint
-spint==1.0.7
-    # via pysal
-splot==1.1.7
-    # via pysal
-spopt==0.6.1
-    # via pysal
-spreg==1.8.2
-    # via
-    #   mgwr
-    #   pysal
-    #   spglm
-    #   spint
-    #   splot
+stack-data==0.6.3
+    # via ipython
 statsmodels==0.14.4
     # via
+    #   causalpy
     #   linearmodels
-    #   tobler
-sympy==1.14.0
-    # via quantecon
 tblib==3.1.0
     # via distributed
 tensorflow-probability==0.25.0
@@ -675,8 +494,6 @@ threadpoolctl==3.6.0
     # via
     #   pymc
     #   scikit-learn
-tobler==0.12.1
-    # via pysal
 tomli==2.2.1
     # via setuptools-scm
 toolz==1.0.0
@@ -693,25 +510,26 @@ tornado==6.5
     #   distributed
 tqdm==4.67.1
     # via
-    #   pr-salaries (pyproject.toml)
+    #   aeasp-2025 (pyproject.toml)
     #   flowmc
-    #   momepy
     #   numpyro
-    #   segregation
-    #   spopt
-    #   tobler
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
 treescope==0.1.9
     # via flax
 typing-extensions==4.13.2
     # via
     #   arviz
-    #   beautifulsoup4
     #   blackjax
     #   chex
     #   equinox
     #   etils
+    #   exceptiongroup
     #   flax
     #   formulaic
+    #   ipython
     #   lineax
     #   optimistix
     #   orbax-checkpoint
@@ -721,14 +539,19 @@ tzdata==2025.2
     # via pandas
 ujson==5.10.0
     # via arviz
-urllib3==2.4.0
+urllib3==2.5.0
     # via
+    #   aeasp-2025 (pyproject.toml)
     #   distributed
     #   requests
 wadler-lindig==0.1.6
     # via
     #   equinox
     #   jaxtyping
+wcwidth==0.2.13
+    # via prompt-toolkit
+webencodings==0.5.1
+    # via html5lib
 wrapt==1.17.2
     # via
     #   dm-tree
@@ -736,6 +559,7 @@ wrapt==1.17.2
 xarray==2025.4.0
     # via
     #   arviz
+    #   causalpy
     #   nutpie
     #   xarray-datatree
     #   xarray-einstats
