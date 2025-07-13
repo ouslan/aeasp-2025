@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from toolz import partial
 from scipy.optimize import fmin_slsqp
 from joblib import Parallel, delayed
+import pymc as pm
+import arviz as az
 import seaborn as sns
 
 
@@ -64,10 +66,20 @@ class DataReg(DataPull):
         data = df.join(
             df_dp03, on=["area_fips", "year"], how="left", validate="m:1"
         ).sort(by=["area_fips", "year"])
-        selected_cols = ["commute_car", "employment", "total_population"]
+        selected_cols = [
+            "commute_car",
+            "employment",
+            "total_population",
+            "commute_time",
+            "in_labor_force",
+        ]
 
         data = data.with_columns(
             area_fips="i" + pl.col("area_fips"),
+        )
+        data = data.filter(
+            (pl.col("area_fips").str.slice(1, 2) != target[1:3])
+            | (pl.col("area_fips") == target)
         )
 
         data_np = data.select(selected_cols).to_numpy()
@@ -362,3 +374,236 @@ class DataReg(DataPull):
             "counties - Synthetic Across Time (Large Pre-Treatment Errors Removed)"
         )
         plt.legend()
+
+    def synth_bayes(self, controls: list, target: str, date: str):
+        data = self.synth_data(controls=controls, target=target, date=date)
+
+        features = ["total_employment"]
+        pre_df = (
+            data.query("~after_treatment")
+            .pivot(index="area_fips", columns="date", values=features)
+            .T
+        ).dropna(axis=1)
+
+        post_df = (
+            data.query("after_treatment")
+            .pivot(index="area_fips", columns="date", values=features)
+            .T
+        )
+        pre_df = pre_df.dropna(axis=1)
+        post_df = post_df.dropna(axis=1)
+
+        controls = list(set(pre_df.columns) & set(post_df.columns))
+
+        pre_df = pre_df[controls]
+        post_df = post_df[controls]
+
+        y_pre = pre_df[target].to_numpy()
+        x_pre = pre_df.drop(columns=target).to_numpy()
+        pre_years = pre_df.reset_index(inplace=False).date.unique()
+        n_pre = pre_years.size
+
+        y_post = post_df[target].to_numpy()
+        x_post = post_df.drop(columns=target).to_numpy()
+        post_years = post_df.reset_index(inplace=False).date.unique()
+        n_post = post_years.size
+
+        k = pre_df.shape[1] - 1
+
+        with pm.Model() as model:
+            x = pm.Data(name="x", value=x_pre)
+            y = pm.Data(name="y", value=y_pre)
+            beta = pm.Dirichlet(name="beta", a=(1 / k) * np.ones(k))
+            sigma = pm.HalfNormal(name="sigma", sigma=5)
+            mu = pm.Deterministic(name="mu", var=pm.math.dot(x, beta))
+            likelihood = pm.Normal(name="likelihood", mu=mu, sigma=sigma, observed=y)
+
+        with model:
+            idata = pm.sample(draws=1000, tune=1000, target_accept=0.99)
+            posterior_predictive_pre = pm.sample_posterior_predictive(trace=idata)
+
+        with model:
+            pm.set_data(new_data={"x": x_post, "y": y_post})
+            posterior_predictive_post = pm.sample_posterior_predictive(
+                trace=idata, var_names=["likelihood"]
+            )
+
+        graph = pm.model_to_graphviz(model)
+        graph.render(view=True)
+
+        fig, ax = plt.subplots()
+
+        (
+            data.groupby(["date", "controls"], as_index=False)
+            .agg({"total_employment": "mean"})
+            .pipe(
+                (sns.lineplot, "data"),
+                x="date",
+                y="total_employment",
+                hue="controls",
+                marker="o",
+                ax=ax,
+            )
+        )
+        ax.axvline(
+            x=pd.to_datetime("2016-01-01"),
+            linestyle=":",
+            lw=2,
+            color="C2",
+            label="Iplementation of minimum wage",
+        )
+
+        ax.legend(loc="upper right")
+        ax.set(title="Employment", ylabel="total employment trend Trend")
+
+        # graph
+
+        pre_posterior_mean = (
+            posterior_predictive_pre.posterior_predictive["likelihood"][:, :, :n_pre]
+            .stack(samples=("chain", "draw"))
+            .mean(axis=1)
+        )
+
+        post_posterior_mean = (
+            posterior_predictive_post.posterior_predictive["likelihood"][:, :, :n_post]
+            .stack(samples=("chain", "draw"))
+            .mean(axis=1)
+        )
+
+        # Data Aggregation and Grouping
+        data_grouped = (
+            data.groupby(["date", "controls"])
+            .agg({"total_employment": "mean"})
+            .reset_index()
+        )
+        data_grouped["is_county"] = data_grouped.controls.map(
+            {True: "San Mateo", False: ""}
+        )
+
+        # Plotting
+        fig, ax = plt.subplots()
+
+        sns.lineplot(
+            data=data_grouped[data_grouped["is_county"] != ""],
+            x="date",
+            y="total_employment",
+            hue="is_county",
+            alpha=0.5,
+            ax=ax,
+        )
+
+        ax.axvline(
+            x=pd.to_datetime("2016-01-01"),
+            linestyle=":",
+            lw=2,
+            color="C2",
+            label="Incremental MW",
+        )
+
+        sns.lineplot(
+            x=pre_years,
+            y=pre_posterior_mean,
+            color="C1",
+            marker="o",
+            label="Pre-treatment posterior predictive mean",
+            ax=ax,
+        )
+
+        sns.lineplot(
+            x=post_years,
+            y=post_posterior_mean,
+            color="C2",
+            marker="o",
+            label="Post-treatment posterior predictive mean",
+            ax=ax,
+        )
+
+        az.plot_hdi(
+            x=pre_years,
+            y=posterior_predictive_pre.posterior_predictive["likelihood"][:, :, :n_pre],
+            smooth=False,
+            color="C1",
+            fill_kwargs={"label": "Pre-treatment posterior predictive (94% HDI)"},
+            ax=ax,
+        )
+
+        az.plot_hdi(
+            x=post_years,
+            y=posterior_predictive_post.posterior_predictive["likelihood"][
+                :, :, :n_post
+            ],
+            smooth=False,
+            color="C2",
+            fill_kwargs={"label": "Post-treatment posterior predictive (94% HDI)"},
+            ax=ax,
+        )
+
+        ax.legend(loc="upper left")
+        ax.set(title="Sythetic control on San Mateo County", ylabel="Employment")
+
+        plt.show()
+
+        effect_pre = y_pre[:n_pre] - pre_posterior_mean
+        effect_post = y_post[:n_post] - post_posterior_mean
+
+        fig, ax = plt.subplots()
+
+        ax.axvline(
+            x=pd.to_datetime("2016-01-01"),
+            linestyle=":",
+            lw=2,
+            color="C2",
+            label="Incremental MW",
+        )
+
+        sns.lineplot(
+            x=pre_years,
+            y=effect_pre,
+            color="C1",
+            marker="o",
+            label="Pre-treatment posterior predictive effect mean",
+            ax=ax,
+        )
+        sns.lineplot(
+            x=post_years,
+            y=effect_post,
+            color="C2",
+            marker="o",
+            label="Post-treatment posterior predictive effect mean",
+            ax=ax,
+        )
+
+        az.plot_hdi(
+            x=pre_years,
+            y=y_pre[:n_pre]
+            - posterior_predictive_pre.posterior_predictive["likelihood"][:, :, :n_pre],
+            smooth=False,
+            color="C1",
+            fill_kwargs={
+                "label": "Pre-treatment posterior predictive effect (94% HDI)"
+            },
+            ax=ax,
+        )
+        az.plot_hdi(
+            x=post_years,
+            y=y_post[:n_post]
+            - posterior_predictive_post.posterior_predictive["likelihood"][
+                :, :, :n_post
+            ],
+            smooth=False,
+            color="C2",
+            fill_kwargs={
+                "label": "Post-treatment posterior predictive effect (94% HDI)"
+            },
+            ax=ax,
+        )
+
+        ax.axhline(y=0.0, color="black", linestyle="--", label="Zero effect")
+
+        ax.legend(loc="lower left")
+        ax.set(
+            title="San Mateo County - Synthetic Control Effect Over Time",
+            ylabel="Gap in total employment",
+        )
+
+        plt.show()
