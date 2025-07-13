@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# env
+.mamba/
+.python-version
+
 # Distribution / packaging
 .Python
 build/
@@ -94,12 +98,6 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
-# UV
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#uv.lock
-
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
@@ -167,13 +165,19 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Ruff stuff:
-.ruff_cache/
+# Ignore data files
+data/processed/
+data/raw/
+data/external/
 
-# PyPI configuration file
-.pypirc
-*.DS_Store
-*.csv
-data/
-*.ddb 
+# Data files
+*.dta
+*.sqlite
+*.ddb
 *.wal
+assets/
+aux/
+*.gz
+
+*.csv
+*.png

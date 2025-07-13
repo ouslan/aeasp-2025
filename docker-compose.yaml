@@ -1,0 +1,36 @@
+services:
+  rocm_jax:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rocm_jax
+    network_mode: host
+    devices:
+      - "/dev/kfd"
+      - "/dev/dri"
+    ipc: host
+    shm_size: '64G'
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - .:/jax_dir
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+    # ✅ Enable CPU and memory access (use host limits)
+    deploy:
+      resources:
+        limits:
+          cpus: '16'          # Set this to the number of physical cores or leave unset to use all
+          memory: 64G         # Or whatever max you can allocate
+
+    # ✅ Environment variables for JAX ROCm GPU
+    environment:
+      -  XLA_PYTHON_CLIENT_MEM_FRACTION=0.8
+      - JAX_PLATFORM_NAME=gpu
