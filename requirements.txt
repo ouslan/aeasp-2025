@@ -424,7 +424,7 @@ pyyaml==6.0.2
     #   distributed
     #   flax
     #   orbax-checkpoint
-requests==2.32.3
+requests==2.32.4
     # via aeasp-2025 (pyproject.toml)
 rich==14.0.0
     # via
