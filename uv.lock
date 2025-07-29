@@ -44,6 +44,7 @@ dependencies = [
     { name = "shapely" },
     { name = "tqdm" },
     { name = "urllib3" },
+    { name = "xlsxwriter" },
 ]
 
 [package.dev-dependencies]
@@ -81,6 +82,7 @@ requires-dist = [
     { name = "shapely", specifier = ">=2.0.7" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "urllib3", specifier = ">=2.5.0" },
+    { name = "xlsxwriter", specifier = ">=3.2.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -4726,6 +4728,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a2/53/67c8eb953d9d35cba86615991d11055cf8ffd07c8440ac865206c8223792/xarray_einstats-0.9.0.tar.gz", hash = "sha256:12d2352b55d7f0ca7c6c0daca2225ad123413c5c4a4a70d5aff14ac74c60ea81", size = 33320, upload-time = "2025-05-22T19:48:32.03Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/7e/41e5084ce3d1c3bf81a9144be1579c1768a3333aff11c23912d1d098d072/xarray_einstats-0.9.0-py3-none-any.whl", hash = "sha256:85496ade2764bf12f58222a9118e776ea836ac57e5dc8eb331b650a7ceb4b4a9", size = 39050, upload-time = "2025-05-22T19:48:30.391Z" },
+]
+
+[[package]]
+name = "xlsxwriter"
+version = "3.2.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/47/7704bac42ac6fe1710ae099b70e6a1e68ed173ef14792b647808c357da43/xlsxwriter-3.2.5.tar.gz", hash = "sha256:7e88469d607cdc920151c0ab3ce9cf1a83992d4b7bc730c5ffdd1a12115a7dbe", size = 213306, upload-time = "2025-06-17T08:59:14.619Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/34/a22e6664211f0c8879521328000bdcae9bf6dbafa94a923e531f6d5b3f73/xlsxwriter-3.2.5-py3-none-any.whl", hash = "sha256:4f4824234e1eaf9d95df9a8fe974585ff91d0f5e3d3f12ace5b71e443c1c6abd", size = 172347, upload-time = "2025-06-17T08:59:13.453Z" },
 ]
 
 [[package]]
