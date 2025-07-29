@@ -21,7 +21,7 @@ class DataReg(DataPull):
     ):
         super().__init__(saving_dir, database_file, log_file)
 
-    def data_set(self) -> pl.DataFrame:
+    def data_set(self, naics: str) -> pl.DataFrame:
         df_min = self.pull_min_wage()
         df_min = df_min.with_columns(
             min_wage=pl.col("min_wage").str.replace("$", "", literal=True),
@@ -44,11 +44,14 @@ class DataReg(DataPull):
         df = df.with_columns(
             qtr=pl.col("qtr").cast(pl.Int32), year=pl.col("year").cast(pl.Int32)
         )
+
+        df = df.filter((pl.col("industry_code") == naics) & (pl.col("year") < 2020))
+
         return df
 
-    def controls_list(self, target: str) -> list:
-        df = self.data_set()
-        df = df.filter((pl.col("industry_code") == "72") & (pl.col("year") == 2015))
+    def controls_list(self, target: str, naics: str, amount: int) -> list:
+        df = self.data_set(naics=naics)
+        df = df.filter((pl.col("industry_code") == naics) & (pl.col("year") == 2015))
         df_dp03 = self.pull_dp03()
         df_dp03 = df_dp03.with_columns(
             area_fips=pl.col("geoid"),
@@ -67,11 +70,34 @@ class DataReg(DataPull):
             df_dp03, on=["area_fips", "year"], how="left", validate="m:1"
         ).sort(by=["area_fips", "year"])
         selected_cols = [
-            "commute_car",
             "employment",
             "total_population",
-            "commute_time",
-            "in_labor_force",
+            "work_fish",
+            "work_manage",
+            "work_business",
+            "work_finance",
+            "work_computer",
+            "work_architecture",
+            "work_law",
+            "work_education",
+            "work_health",
+            "in_education",
+            "work_art_entertainment",
+            "work_sales",
+            "work_office_administration",
+            "total_house",
+            "inc_less_10k",
+            "inc_10k_15k",
+            "inc_15k_25k",
+            "inc_25k_35k",
+            "inc_35k_50k",
+            "inc_50k_75k",
+            "inc_75k_100k",
+            "inc_100k_150k",
+            "inc_150k_200k",
+            "inc_more_200k",
+            "with_social_security",
+            "food_stamp",
         ]
 
         data = data.with_columns(
@@ -107,16 +133,17 @@ class DataReg(DataPull):
         controls = (
             data.filter(pl.col("area_fips") != target)
             .sort("mahalanobis")
-            .head(200)
+            .head(amount)
             .select("area_fips")
             .to_series()
             .to_list()
         )
         return controls
 
-    def synth_data(self, controls: list, target: str, date: str) -> pd.DataFrame:
-        df = self.data_set()
-        df = df.filter((pl.col("industry_code") == "72") & (pl.col("year") < 2020))
+    def synth_data(
+        self, controls: list, target: str, date: str, naics: str
+    ) -> pd.DataFrame:
+        df = self.data_set(naics=naics)
 
         df = df.with_columns(
             date=pl.col("year").cast(pl.String) + "Q" + pl.col("qtr").cast(pl.String),
@@ -150,7 +177,7 @@ class DataReg(DataPull):
         ].reset_index(drop=True)
         return pd.DataFrame(data)
 
-    def synth_freq(self, controls: list, target: str, date: str):
+    def synth_freq(self, controls: list, target: str, date: str, naics: str):
         # Helper functions
         def loss_w(W, X, y) -> float:
             return np.sqrt(np.mean((y - X.dot(W)) ** 2))
@@ -200,7 +227,7 @@ class DataReg(DataPull):
             ) ** 2
             return pre_treat_error.mean()
 
-        data = self.synth_data(controls=controls, target=target, date=date)
+        data = self.synth_data(controls=controls, target=target, date=date, naics=naics)
 
         # Remove invalide area fips
         features = ["total_employment"]
@@ -278,7 +305,7 @@ class DataReg(DataPull):
         plt.plot(
             data.query("controls")["date"],
             data.query("controls")["total_employment"],
-            label="San Mateo",
+            label="Montgomery County",
         )
         plt.plot(
             data.query("controls")["date"], synth_control, label="Synthetic Control"
@@ -291,8 +318,9 @@ class DataReg(DataPull):
         plt.plot(
             data.query("controls")["date"],
             data.query("controls")["total_employment"] - synth_control,
-            label="San mateo Effect",
+            label="Montgomery County Effect",
         )
+        
         plt.hlines(
             y=0,
             xmin=pd.to_datetime("2014-01-01"),
@@ -316,7 +344,7 @@ class DataReg(DataPull):
         plt.plot(
             data.query("controls")["date"],
             data.query("controls")["total_employment"] - synth_control,
-            label="San mateo",
+            label="Montgomery County",
         )
 
         plt.vlines(
@@ -325,7 +353,7 @@ class DataReg(DataPull):
             ymax=0.25,
             linestyle=":",
             lw=2,
-            label="polosy",
+            label="Policy",
         )
         plt.hlines(
             y=0,
@@ -351,7 +379,7 @@ class DataReg(DataPull):
         plt.plot(
             data.query("controls")["date"],
             data.query("controls")["total_employment"] - synth_control,
-            label="California",
+            label="Montgomery County",
         )
 
         plt.vlines(
@@ -360,7 +388,7 @@ class DataReg(DataPull):
             ymax=0.25,
             linestyle=":",
             lw=2,
-            label="polosy",
+            label="Policy",
         )
         plt.hlines(
             y=0,
@@ -375,8 +403,8 @@ class DataReg(DataPull):
         )
         plt.legend()
 
-    def synth_bayes(self, controls: list, target: str, date: str):
-        data = self.synth_data(controls=controls, target=target, date=date)
+    def synth_bayes(self, controls: list, target: str, date: str, naics: str):
+        data = self.synth_data(controls=controls, target=target, date=date, naics=naics)
 
         features = ["total_employment"]
         pre_df = (
@@ -428,9 +456,6 @@ class DataReg(DataPull):
                 trace=idata, var_names=["likelihood"]
             )
 
-        graph = pm.model_to_graphviz(model)
-        graph.render(view=True)
-
         fig, ax = plt.subplots()
 
         (
@@ -446,7 +471,7 @@ class DataReg(DataPull):
             )
         )
         ax.axvline(
-            x=pd.to_datetime("2016-01-01"),
+            x=pd.to_datetime("2017-01-01"),
             linestyle=":",
             lw=2,
             color="C2",
@@ -477,7 +502,7 @@ class DataReg(DataPull):
             .reset_index()
         )
         data_grouped["is_county"] = data_grouped.controls.map(
-            {True: "San Mateo", False: ""}
+            {True: "Montgomery County", False: ""}
         )
 
         # Plotting
@@ -493,7 +518,7 @@ class DataReg(DataPull):
         )
 
         ax.axvline(
-            x=pd.to_datetime("2016-01-01"),
+            x=pd.to_datetime("2017-01-01"),
             linestyle=":",
             lw=2,
             color="C2",
@@ -539,7 +564,9 @@ class DataReg(DataPull):
         )
 
         ax.legend(loc="upper left")
-        ax.set(title="Sythetic control on San Mateo County", ylabel="Employment")
+        ax.set(
+            title="Sythetic control on Montgomery County County", ylabel="Employment"
+        )
 
         plt.show()
 
@@ -549,7 +576,7 @@ class DataReg(DataPull):
         fig, ax = plt.subplots()
 
         ax.axvline(
-            x=pd.to_datetime("2016-01-01"),
+            x=pd.to_datetime("2017-01-01"),
             linestyle=":",
             lw=2,
             color="C2",
@@ -602,7 +629,7 @@ class DataReg(DataPull):
 
         ax.legend(loc="lower left")
         ax.set(
-            title="San Mateo County - Synthetic Control Effect Over Time",
+            title="Montgomery County County - Synthetic Control Effect Over Time",
             ylabel="Gap in total employment",
         )
 
