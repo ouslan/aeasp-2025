@@ -18,7 +18,7 @@ def init_dp03_table(db_path: str) -> None:
 
 def init_qcew_us_table(db_path: str) -> None:
     current_dir = Path(__file__).parent
-    sql_path = current_dir / "init_us_qcew_table.sql"
+    sql_path = current_dir / "init_qcew_us_table.sql"
     with sql_path.open("r", encoding="utf-8") as file:
         us_qcew_script = file.read()
 
