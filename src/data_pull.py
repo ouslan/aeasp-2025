@@ -12,7 +12,7 @@ from tqdm import tqdm
 from shapely import wkt
 
 from .jp_qcew.src.data.data_process import cleanData
-from .models import init_dp03_table, init_qcew_table, init_wage_table
+from .sql.models import init_dp03_table, init_qcew_us_table, init_wage_table
 
 load_dotenv()
 
@@ -280,13 +280,13 @@ class DataPull(cleanData):
         gdf = gdf[~gdf["geo_id"].isin(remove_list_counties)]
         county_list = list(gdf["geo_id"].values)
 
-        if "QCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_qcew_table(self.data_file)
+        if "USQCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_qcew_us_table(self.data_file)
         for year in range(2014, 2025):
             for qtr in range(1, 5):
                 print(f"{year}-{qtr}")
                 county_missing = self.conn.sql(
-                    f"SELECT DISTINCT area_fips FROM 'QCEWTable' WHERE year={year} AND qtr={qtr};"
+                    f"SELECT DISTINCT area_fips FROM 'USQCEWTable' WHERE year={year} AND qtr={qtr};"
                 ).df()
                 county_missing["area_fips"] = county_missing["area_fips"].str.zfill(5)
                 county_missing = county_missing["area_fips"].to_list()
@@ -297,7 +297,7 @@ class DataPull(cleanData):
                 for county in county_missing:
                     if (
                         self.conn.sql(
-                            f"SELECT * FROM 'QCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr} LIMIT(1);"
+                            f"SELECT * FROM 'USQCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr} LIMIT(1);"
                         )
                         .df()
                         .empty
@@ -305,7 +305,7 @@ class DataPull(cleanData):
                         df = self.pull_qcew_file(year=year, qtr=qtr, county=county)
                         print(f"{year}-{qtr}-{county}")
                         self.conn.sql(
-                            "INSERT INTO 'QCEWTable' BY NAME SELECT * FROM df;"
+                            "INSERT INTO 'USQCEWTable' BY NAME SELECT * FROM df;"
                         )
                         logging.info(
                             f"succesfully inserted qcew data for {year}-{qtr}-{county}"
