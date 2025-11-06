@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 from datetime import datetime
 from json import JSONDecodeError
 
@@ -44,36 +45,26 @@ class DataPull:
         self.conn.load_extension("spatial")
 
     def pull_county_shapes(self):
-        if "CountyTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+        if not os.path.exists(f"{self.saving_dir}raw/county_shape.parquet"):
             # Download the shape files
-            if not os.path.exists(f"{self.saving_dir}external/county_shape.zip"):
-                self.pull_file(
-                    url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
-                    filename=f"{self.saving_dir}external/county_shape.zip",
-                )
-                logging.info("Downloaded zipcode shape files")
 
-            gdf = gpd.read_file(f"{self.saving_dir}external/county_shape.zip")
+            self.pull_file(
+                url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
+                filename=f"{tempfile.gettempdir()}/county_shape.zip",
+            )
+            logging.info("Downloaded zipcode shape files")
+
+            gdf = gpd.read_file(f"{tempfile.gettempdir()}/county_shape.zip")
             gdf = gdf.rename(
                 columns={"GEOID": "geo_id", "NAME": "county_name", "STATEFP": "fips"}
             )
             gdf = gdf[["geo_id", "fips", "county_name", "geometry"]]
-            df = gdf.drop(columns="geometry")
+            gdf = gdf.to_crs("EPSG:3395")
+            gdf["area_fips"] = gdf["geo_id"].astype(str)
+            gdf["fips"] = gdf["fips"].astype(str)
+            gdf.to_parquet(f"{self.saving_dir}raw/county_shape.parquet")
 
-            geometry = gdf["geometry"].apply(lambda geom: geom.wkt)
-            df["geometry"] = geometry
-            self.conn.execute("CREATE TABLE CountyTable AS SELECT * FROM df")
-            logging.info(
-                f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
-            )
-
-        gdf = gpd.GeoDataFrame(self.conn.sql("SELECT * FROM CountyTable;").df())
-        gdf["geometry"] = gdf["geometry"].apply(wkt.loads)
-        gdf = gdf.set_geometry("geometry").set_crs("EPSG:4269", allow_override=True)
-        gdf = gdf.to_crs("EPSG:3395")
-        gdf["area_fips"] = gdf["geo_id"].astype(str)
-        gdf["fips"] = gdf["fips"].astype(str)
-        return gdf
+        return gpd.read_parquet(f"{self.saving_dir}raw/county_shape.parquet")
 
     def pull_states_shapes(self):
         if "StateTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
