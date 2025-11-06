@@ -43,16 +43,16 @@ class DataPull:
         self.conn.load_extension("spatial")
 
     def pull_county_shapes(self):
-        if not os.path.exists(f"{self.saving_dir}raw/county_shape.parquet"):
+        if not os.path.exists(f"{self.saving_dir}external/geo-us-county.parquet"):
             # Download the shape files
 
             self.pull_file(
                 url="https://www2.census.gov/geo/tiger/TIGER2025/COUNTY/tl_2025_us_county.zip",
-                filename=f"{tempfile.gettempdir()}/county_shape.zip",
+                filename=f"{tempfile.gettempdir()}/geo-us-county.zip",
             )
             logging.info("Downloaded zipcode shape files")
 
-            gdf = gpd.read_file(f"{tempfile.gettempdir()}/county_shape.zip")
+            gdf = gpd.read_file(f"{tempfile.gettempdir()}/geo-us-county.zip")
             gdf = gdf.rename(
                 columns={"GEOID": "geo_id", "NAME": "county_name", "STATEFP": "fips"}
             )
@@ -60,33 +60,25 @@ class DataPull:
             gdf = gdf.to_crs("EPSG:3395")
             gdf["area_fips"] = gdf["geo_id"].astype(str)
             gdf["fips"] = gdf["fips"].astype(str)
-            gdf.to_parquet(f"{self.saving_dir}raw/county_shape.parquet")
+            gdf.to_parquet(f"{self.saving_dir}external/geo-us-county.parquet")
 
-        return gpd.read_parquet(f"{self.saving_dir}raw/county_shape.parquet")
+        return gpd.read_parquet(f"{self.saving_dir}external/geo-us-county.parquet")
 
     def pull_states_shapes(self):
-        if "StateTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+        if not os.path.exists(f"{self.saving_dir}external/geo-us-state.parquet"):
             # Download the shape files
-            if not os.path.exists(f"{self.saving_dir}external/state_shape.zip"):
-                self.pull_file(
-                    url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
-                    filename=f"{self.saving_dir}external/state_shape.zip",
-                )
-                logging.info("Downloaded zipcode shape files")
+            self.pull_file(
+                url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
+                filename=f"{tempfile.gettempdir()}/geo-us-state.zip",
+            )
 
             gdf = gpd.read_file(f"{self.saving_dir}external/state_shape.zip")
             gdf = gdf.rename(columns={"NAME": "state_name", "STATEFP": "fips"})
 
             gdf = gdf[["fips", "state_name", "geometry"]]
-            df = gdf.drop(columns="geometry")
-
-            geometry = gdf["geometry"].apply(lambda geom: geom.wkt)
-            df["geometry"] = geometry
-            self.conn.execute("CREATE TABLE StateTable AS SELECT * FROM df")
-            logging.info(
-                f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
-            )
-        return self.conn.sql("SELECT * FROM StateTable;").df()
+            gdf.to_parquet(f"{self.saving_dir}external/geo-us-state.parquet")
+            logging.info("Downloaded USA States shape files")
+        return gpd.read_parquet(f"{self.saving_dir}external/geo-us-state.parquet")
 
     def pull_query(self, params: list, year: int) -> pl.DataFrame:
         # prepare custom census query
