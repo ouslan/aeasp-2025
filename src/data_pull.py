@@ -10,10 +10,8 @@ import polars as pl
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
-from shapely import wkt
 import duckdb
 
-from .sql.models import init_dp03_table, init_qcew_us_table, init_wage_table, get_conn
 
 load_dotenv()
 
