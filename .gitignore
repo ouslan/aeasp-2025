@@ -177,3 +177,8 @@ cython_debug/
 data/
 *.ddb 
 *.wal
+
+
+# Jupyter
+notebooks/*
+!notebooks/*.ipynb

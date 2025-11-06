@@ -10,6 +10,7 @@ import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
 from shapely import wkt
+import duckdb
 
 from .sql.models import init_dp03_table, init_qcew_us_table, init_wage_table, get_conn
 
@@ -20,12 +21,10 @@ class DataPull:
     def __init__(
         self,
         saving_dir: str = "data/",
-        database_file: str = "data.ddb",
         log_file: str = "data_process.log",
     ):
         self.saving_dir = saving_dir
-        self.data_file = database_file
-        self.conn = get_conn(self.data_file)
+        self.conn = duckdb.connect()
 
         logging.basicConfig(
             level=logging.INFO,
@@ -118,17 +117,11 @@ class DataPull:
         return df.rename(names).with_columns(year=pl.lit(year))
 
     def pull_dp03(self):
-        if "DP03Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_dp03_table(self.data_file)
         for _year in range(2012, datetime.now().year - 1):
-            if (
-                self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}")
-                .df()
-                .empty
-            ):
+            if not os.path.exists(f"{self.saving_dir}raw/dp03-{_year}.parquet"):
                 try:
                     logging.info(f"pulling {_year} data")
-                    tmp = self.pull_query(
+                    df_dp03 = self.pull_query(
                         params=[
                             "DP03_0001E",
                             "DP03_0008E",
@@ -166,7 +159,7 @@ class DataPull:
                         ],
                         year=_year,
                     )
-                    tmp = tmp.rename(
+                    df_dp03 = df_dp03.rename(
                         {
                             "dp03_0001e": "total_population",
                             "dp03_0008e": "in_labor_force",
@@ -203,18 +196,20 @@ class DataPull:
                             "dp03_0074e": "food_stamp",
                         }
                     )
-                    tmp = tmp.with_columns(
+                    df_dp03 = df_dp03.with_columns(
                         geoid=pl.col("state") + pl.col("county"), fips=pl.col("state")
                     ).drop(["state", "county"])
-                    self.conn.sql("INSERT INTO 'DP03Table' BY NAME SELECT * FROM tmp")
-                    logging.info(f"succesfully inserting {_year}")
+                    df_dp03.write_parquet(f"{self.saving_dir}raw/dp03-{_year}.parquet")
+                    logging.info(f"succesfully pull {_year} dp03 data")
                 except JSONDecodeError:
                     logging.warning(f"The ACS for {_year} is not availabe")
                     continue
             else:
-                logging.info(f"data for {_year} is in the database")
+                logging.info(f"data for {_year} is already pull")
                 continue
-        return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
+        return self.conn.execute(
+            f"SELECT * FROM '{self.saving_dir}raw/dp03-*.parquet';"
+        ).pl()
 
     def pull_file(self, url: str, filename: str, verify: bool = True) -> None:
         """
@@ -254,9 +249,7 @@ class DataPull:
     def pull_min_wage(self) -> pl.DataFrame:
         url = "https://www.dol.gov/agencies/whd/state/minimum-wage/history"
 
-        if "WageTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_wage_table(self.data_file)
-        if self.conn.sql("SELECT * FROM 'WageTable';").df().empty:
+        if not os.path.exists(f"{self.saving_dir}raw/mw.parquet"):
             html = requests.get(url).content
 
             df_list = pd.read_html(html, match="2023")
@@ -265,16 +258,18 @@ class DataPull:
             df_list = pd.read_html(html, match="2014")
             df_2019 = df_list[-1]
 
-            df = pd.merge(
+            df_mw = pd.merge(
                 df_2024, df_2019, how="left", on="State or other jurisdiction"
             )
-            df = pl.from_pandas(df)
-            df = df.rename({"State or other jurisdiction": "state_name"})
-            df = df.unpivot(
+            df_mw = pl.from_pandas(df_mw)
+            df_mw = df_mw.rename({"State or other jurisdiction": "state_name"})
+            df_mw = df_mw.unpivot(
                 index="state_name", variable_name="year", value_name="min_wage"
             )
-            self.conn.sql("INSERT INTO 'WageTable' BY NAME SELECT * FROM df;")
-        return self.conn.sql("SELECT * FROM 'WageTable';").pl()
+            df_mw.write_parquet(f"{self.saving_dir}raw/mw.parquet")
+        return self.conn.execute(
+            f"SELECT * FROM '{self.saving_dir}raw/mw.parquet';"
+        ).pl()
 
     def pull_qcew_file(self, year: int, qtr: int, county: str) -> pl.DataFrame:
         url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
