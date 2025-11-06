@@ -1,19 +1,17 @@
 import logging
 import os
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from json import JSONDecodeError
 
+import duckdb
 import geopandas as gpd
 import pandas as pd
 import polars as pl
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
-from shapely import wkt
-import duckdb
-
-from .sql.models import init_dp03_table, init_qcew_us_table, init_wage_table, get_conn
 
 load_dotenv()
 
@@ -45,16 +43,16 @@ class DataPull:
         self.conn.load_extension("spatial")
 
     def pull_county_shapes(self):
-        if not os.path.exists(f"{self.saving_dir}raw/county_shape.parquet"):
+        if not os.path.exists(f"{self.saving_dir}external/geo-us-county.parquet"):
             # Download the shape files
 
             self.pull_file(
-                url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
-                filename=f"{tempfile.gettempdir()}/county_shape.zip",
+                url="https://www2.census.gov/geo/tiger/TIGER2025/COUNTY/tl_2025_us_county.zip",
+                filename=f"{tempfile.gettempdir()}/geo-us-county.zip",
             )
             logging.info("Downloaded zipcode shape files")
 
-            gdf = gpd.read_file(f"{tempfile.gettempdir()}/county_shape.zip")
+            gdf = gpd.read_file(f"{tempfile.gettempdir()}/geo-us-county.zip")
             gdf = gdf.rename(
                 columns={"GEOID": "geo_id", "NAME": "county_name", "STATEFP": "fips"}
             )
@@ -62,33 +60,25 @@ class DataPull:
             gdf = gdf.to_crs("EPSG:3395")
             gdf["area_fips"] = gdf["geo_id"].astype(str)
             gdf["fips"] = gdf["fips"].astype(str)
-            gdf.to_parquet(f"{self.saving_dir}raw/county_shape.parquet")
+            gdf.to_parquet(f"{self.saving_dir}external/geo-us-county.parquet")
 
-        return gpd.read_parquet(f"{self.saving_dir}raw/county_shape.parquet")
+        return gpd.read_parquet(f"{self.saving_dir}external/geo-us-county.parquet")
 
     def pull_states_shapes(self):
-        if "StateTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+        if not os.path.exists(f"{self.saving_dir}external/geo-us-state.parquet"):
             # Download the shape files
-            if not os.path.exists(f"{self.saving_dir}external/state_shape.zip"):
-                self.pull_file(
-                    url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
-                    filename=f"{self.saving_dir}external/state_shape.zip",
-                )
-                logging.info("Downloaded zipcode shape files")
+            self.pull_file(
+                url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
+                filename=f"{tempfile.gettempdir()}/geo-us-state.zip",
+            )
 
             gdf = gpd.read_file(f"{self.saving_dir}external/state_shape.zip")
             gdf = gdf.rename(columns={"NAME": "state_name", "STATEFP": "fips"})
 
             gdf = gdf[["fips", "state_name", "geometry"]]
-            df = gdf.drop(columns="geometry")
-
-            geometry = gdf["geometry"].apply(lambda geom: geom.wkt)
-            df["geometry"] = geometry
-            self.conn.execute("CREATE TABLE StateTable AS SELECT * FROM df")
-            logging.info(
-                f"The countytable is empty inserting {self.saving_dir}external/cousub.zip"
-            )
-        return self.conn.sql("SELECT * FROM StateTable;").df()
+            gdf.to_parquet(f"{self.saving_dir}external/geo-us-state.parquet")
+            logging.info("Downloaded USA States shape files")
+        return gpd.read_parquet(f"{self.saving_dir}external/geo-us-state.parquet")
 
     def pull_query(self, params: list, year: int) -> pl.DataFrame:
         # prepare custom census query
@@ -262,19 +252,7 @@ class DataPull:
             f"SELECT * FROM '{self.saving_dir}raw/mw.parquet';"
         ).pl()
 
-    def pull_qcew_file(self, year: int, qtr: int, county: str) -> pl.DataFrame:
-        url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
-        filename = f"{self.saving_dir}raw/bls_{year}_{qtr}_{county}.csv"
-        if not os.path.exists(filename):
-            self.pull_file(url=url, filename=filename)
-            logging.info(f"succesfully downloaded bls_{year}_{qtr}_{county}.csv")
-        df = pl.read_csv(filename, ignore_errors=True)
-        if len(df.columns) < 5:
-            print(county)
-            raise ValueError("File Did not download correctly")
-        return df
-
-    def pull_qcew(self):
+    def get_bls_urls(self) -> dict:
         gdf = self.pull_county_shapes()
         remove_list_sates = ["66", "69", "60", "09", "15", "69", "02"]
         remove_list_counties = ["46102"]
@@ -282,50 +260,48 @@ class DataPull:
         gdf = gdf[~gdf["geo_id"].isin(remove_list_counties)]
         county_list = list(gdf["geo_id"].values)
 
-        if "USQCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_qcew_us_table(self.data_file)
-        for year in range(2014, 2025):
-            for qtr in range(1, 5):
-                print(f"{year}-{qtr}")
-                county_missing = self.conn.sql(
-                    f"SELECT DISTINCT area_fips FROM 'USQCEWTable' WHERE year={year} AND qtr={qtr};"
-                ).df()
-                county_missing["area_fips"] = county_missing["area_fips"].str.zfill(5)
-                county_missing = county_missing["area_fips"].to_list()
-                county_missing = list(set(county_list) - set(county_missing))
-                if len(county_missing) == 0:
-                    continue
-                print(len(county_missing))
-                for county in county_missing:
-                    if (
-                        self.conn.sql(
-                            f"SELECT * FROM 'USQCEWTable' WHERE year={year} AND area_fips={county} AND qtr={qtr} LIMIT(1);"
-                        )
-                        .df()
-                        .empty
-                    ):
-                        df = self.pull_qcew_file(year=year, qtr=qtr, county=county)
-                        print(f"{year}-{qtr}-{county}")
-                        self.conn.sql(
-                            "INSERT INTO 'USQCEWTable' BY NAME SELECT * FROM df;"
-                        )
-                        logging.info(
-                            f"succesfully inserted qcew data for {year}-{qtr}-{county}"
-                        )
-                    else:
-                        print(f"qcew data for {year}-{qtr}-{county} is in database")
-                        logging.info(
-                            f"qcew data for {year}-{qtr}-{county} is in database"
-                        )
-                self.notify(
-                    url=str(os.environ.get("URL")),
-                    auth=str(os.environ.get("AUTH")),
-                    msg=f"Finished {year}-{qtr}",
-                )
+        url_dict = {}
+        for county in county_list:
+            for year in range(2014, 2025):
+                for qtr in range(1, 5):
+                    url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
+                    file_path = (
+                        f"{self.saving_dir}raw/us-qcew-{year}-{qtr}-{county}.parquet"
+                    )
+                    if os.path.exists(file_path):
+                        continue
+                    url_dict[url] = file_path
 
-    def notify(self, url: str, auth: str, msg: str):
-        requests.post(
-            url,
-            data=msg,
-            headers={"Authorization": auth},
-        )
+        return url_dict
+
+    def pull_qcew_file(self, url: str, filename: str, verify: bool = True) -> None:
+        temp_filename = f"{tempfile.gettempdir()}/{hash(filename)}.csv"
+        self.pull_file(url=url, filename=temp_filename, verify=verify)
+        df = pl.read_csv(temp_filename, ignore_errors=True)
+        if len(df.columns) < 5:
+            print(filename)
+            raise ValueError("File Did not download correctly")
+        df.write_parquet(filename)
+
+    def pull_qcew(
+        self,
+        max_workers: int = 4,
+        verify: bool = True,
+    ):
+        file_map = self.get_bls_urls()
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self.pull_qcew_file, url, filename, verify): (
+                    url,
+                    filename,
+                )
+                for url, filename in file_map.items()
+            }
+
+            for future in as_completed(futures):
+                url, filename = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Failed to download {url}: {e}")
