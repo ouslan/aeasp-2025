@@ -49,7 +49,7 @@ class DataPull:
             # Download the shape files
 
             self.pull_file(
-                url="https://www2.census.gov/geo/tiger/TIGER2024/STATE/tl_2024_us_state.zip",
+                url="https://www2.census.gov/geo/tiger/TIGER2025/COUNTY/tl_2025_us_county.zip",
                 filename=f"{tempfile.gettempdir()}/county_shape.zip",
             )
             logging.info("Downloaded zipcode shape files")
@@ -264,7 +264,7 @@ class DataPull:
 
     def pull_qcew_file(self, year: int, qtr: int, county: str) -> pl.DataFrame:
         url = f"http://data.bls.gov/cew/data/api/{year}/{qtr}/area/{county}.csv"
-        filename = f"{self.saving_dir}raw/bls_{year}_{qtr}_{county}.csv"
+        filename = f"{tempfile.gettempdir()}/bls_{year}_{qtr}_{county}.csv"
         if not os.path.exists(filename):
             self.pull_file(url=url, filename=filename)
             logging.info(f"succesfully downloaded bls_{year}_{qtr}_{county}.csv")
@@ -282,8 +282,6 @@ class DataPull:
         gdf = gdf[~gdf["geo_id"].isin(remove_list_counties)]
         county_list = list(gdf["geo_id"].values)
 
-        if "USQCEWTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_qcew_us_table(self.data_file)
         for year in range(2014, 2025):
             for qtr in range(1, 5):
                 print(f"{year}-{qtr}")
