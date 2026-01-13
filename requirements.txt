@@ -27,7 +27,7 @@ bayeux-ml==0.1.15
     # via aeasp-2025 (pyproject.toml)
 blackjax==1.2.5
     # via bayeux-ml
-bokeh==3.7.3
+bokeh==3.8.2
     # via arviz
 cachetools==5.5.2
     # via pymc
