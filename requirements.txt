@@ -112,7 +112,7 @@ fasteners==0.19
     # via zarr
 fastprogress==1.0.3
     # via blackjax
-filelock==3.18.0
+filelock==3.20.3
     # via pytensor
 flax==0.10.4
     # via evosax
