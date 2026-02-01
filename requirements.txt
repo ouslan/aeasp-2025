@@ -130,7 +130,7 @@ fsspec==2025.3.2
     #   etils
 gast==0.6.0
     # via tensorflow-probability
-geopandas==1.0.1
+geopandas==1.1.2
     # via aeasp-2025 (pyproject.toml)
 graphviz==0.20.3
     # via
