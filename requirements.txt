@@ -378,7 +378,7 @@ polars==1.29.0
     # via aeasp-2025 (pyproject.toml)
 prompt-toolkit==3.0.51
     # via ipython
-protobuf==6.31.1
+protobuf==6.33.5
     # via orbax-checkpoint
 psutil==7.0.0
     # via distributed
